@@ -1,3 +1,5 @@
+:- use_module(library(pce)).
+
 :-dynamic pieces/4. %pieces(Pos,Amount,Color,Top), Pos=Column,line ;Top=contains top circle in column
 :-dynamic dice1/2. %dice1(Pic,Num) Num between 1 to 6
 :-dynamic dice2/2. %dice2(Pic,Num)
@@ -36,13 +38,13 @@ retractor:-
 	retractall(colors(_,_)).
 
 %bmp(Pic, PicName).
-bmp(b, 'bgs7_bitmaps/board.bmp').
-bmp(1, 'bgs7_bitmaps/dice1.bmp').
-bmp(2, 'bgs7_bitmaps/dice2.bmp').
-bmp(3, 'bgs7_bitmaps/dice3.bmp').
-bmp(4, 'bgs7_bitmaps/dice4.bmp').
-bmp(5, 'bgs7_bitmaps/dice5.bmp').
-bmp(6, 'bgs7_bitmaps/dice6.bmp').
+bmp(b, 'C:\\Users\\User\\Desktop\\Backgammon\\bgs7_bitmaps\\board.bmp').
+bmp(1, 'C:\\Users\\User\\Desktop\\Backgammon\\bgs7_bitmaps\\dice1.bmp').
+bmp(2, 'C:\\Users\\User\\Desktop\\Backgammon\\bgs7_bitmaps\\dice2.bmp').
+bmp(3, 'C:\\Users\\User\\Desktop\\Backgammon\\bgs7_bitmaps\\dice3.bmp').
+bmp(4, 'C:\\Users\\User\\Desktop\\Backgammon\\bgs7_bitmaps\\dice4.bmp').
+bmp(5, 'C:\\Users\\User\\Desktop\\Backgammon\\bgs7_bitmaps\\dice5.bmp').
+bmp(6, 'C:\\Users\\User\\Desktop\\Backgammon\\bgs7_bitmaps\\dice6.bmp').
 
 %lineX(Pos,X,Side).
 lineX(1,710,right).
@@ -152,6 +154,12 @@ lineY(3,15,405).
 
 game(Side,Colors):-
        retractor,
+       %Close and destroy the existing window if it exists
+       (   object(@window),
+	   free(@window)
+       ->  true
+       ;   true
+       ),
        new(@window,window('backgammon',size(800,730))),
        send(@window,background,colour(white)),
        bmp(b, BMP), %calling bitmap of board
