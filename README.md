@@ -1,9 +1,9 @@
 # Backgammon
-Backgammon in Prolog. Player vs. Mediocre Computer. High School Project.
+Backgammon in Prolog. Player vs. Computer. High School Project.
 
 Open backgammon.pl and type "settings."
 
-Compatible with SWI-PROLOG Windows-64 bit version 7.6.3
+Requires specific pathing for images.
 
 ## Screenshot
 
