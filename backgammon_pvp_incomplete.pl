@@ -15,6 +15,7 @@
 :-dynamic grade/3. %grade(Grade,Pos,Dice)
 :-dynamic side/1. %side(Side), Side=right,left,random
 :-dynamic colors/2. %colors(Color1,Color2)
+:-dynamic mode/1. %mode(Mode), Mode=vs_computer,vs_player
 
 %cube(Num,X,Y).
 cube(1,120,325).
@@ -35,16 +36,17 @@ retractor:-
 	retractall(double(_,_)),
 	retractall(grade(_,_,_)),
 	retractall(side(_)),
-	retractall(colors(_,_)).
+	retractall(colors(_,_)),
+	retractall(mode(_)).
 
 %bmp(Pic, PicName).
-bmp(b, 'C:\\Users\\User\\Desktop\\Backgammon\\bgs7_bitmaps\\board.bmp').
-bmp(1, 'C:\\Users\\User\\Desktop\\Backgammon\\bgs7_bitmaps\\dice1.bmp').
-bmp(2, 'C:\\Users\\User\\Desktop\\Backgammon\\bgs7_bitmaps\\dice2.bmp').
-bmp(3, 'C:\\Users\\User\\Desktop\\Backgammon\\bgs7_bitmaps\\dice3.bmp').
-bmp(4, 'C:\\Users\\User\\Desktop\\Backgammon\\bgs7_bitmaps\\dice4.bmp').
-bmp(5, 'C:\\Users\\User\\Desktop\\Backgammon\\bgs7_bitmaps\\dice5.bmp').
-bmp(6, 'C:\\Users\\User\\Desktop\\Backgammon\\bgs7_bitmaps\\dice6.bmp').
+bmp(b, 'C:\\Users\\User\\Downloads\\Backgammon\\bgs7_bitmaps\\board.bmp').
+bmp(1, 'C:\\Users\\User\\Downloads\\Backgammon\\bgs7_bitmaps\\dice1.bmp').
+bmp(2, 'C:\\Users\\User\\Downloads\\Backgammon\\bgs7_bitmaps\\dice2.bmp').
+bmp(3, 'C:\\Users\\User\\Downloads\\Backgammon\\bgs7_bitmaps\\dice3.bmp').
+bmp(4, 'C:\\Users\\User\\Downloads\\Backgammon\\bgs7_bitmaps\\dice4.bmp').
+bmp(5, 'C:\\Users\\User\\Downloads\\Backgammon\\bgs7_bitmaps\\dice5.bmp').
+bmp(6, 'C:\\Users\\User\\Downloads\\Backgammon\\bgs7_bitmaps\\dice6.bmp').
 
 %lineX(Pos,X,Side).
 lineX(1,710,right).
@@ -152,14 +154,10 @@ lineY(3,13,385).
 lineY(3,14,395).
 lineY(3,15,405).
 
-game(Side,Colors):-
+game(Mode,Side,Colors):-
        retractor,
        %Close and destroy the existing window if it exists
-       (   object(@window),
-	   free(@window)
-       ->  true
-       ;   true
-       ),
+       (object(@window),free(@window)->  true;true),
        new(@window,window('backgammon',size(800,730))),
        send(@window,background,colour(white)),
        bmp(b, BMP), %calling bitmap of board
@@ -169,6 +167,7 @@ game(Side,Colors):-
        side(M), %calling it for circles positions
        coloring(Colors), %inserting the colors to dynamic
        colors(Color,EColor), %Color for player 1 and EColor for player 2
+	   assert(mode(Mode)),
        %starting positions of circles of the 2 players
        new(B1,circle(55)),
        send(B1,fill_pattern,colour(Color)),
@@ -394,6 +393,7 @@ starter:-
 
 %Computer starts
 starter:-
+	   mode(vs_computer),
        dice1(L1,E),
        dice2(L2,G),
        G > E, new(Text3,text('Computer starts!')),
@@ -404,11 +404,20 @@ starter:-
        retractall(dice1(_,_)),
        retractall(dice2(_,_)),
        makelist_of_circles(2).
+	   
+%Player starts
+starter:-
+       dice1(L1,E),
+       dice2(L2,G),E < G, new(Text4,text('Player 2 starts!')),
+       send(Text4, font, font(times, bold, 18)),
+       send(@window,display,Text4,point(0,700)),
+       send(L1,recogniser,click_gesture(left,'',single,message(@prolog,makelist_of_circles,2))),
+       send(L2,recogniser,click_gesture(left,'',single,message(@prolog,makelist_of_circles,2))).
 
-%roll(Num,Cube) R can be 1 or 2 depends on which dice
+%roll(Num,R)
 roll(N,R):-
 	 bmp(N, BMP),
-         cube(R,X,Y),
+	 cube(R,X,Y),
 	 (R is 1, new(Dice1,bitmap(BMP)),
 	 send(@window,display,Dice1,point(X,Y)),
 	 assert(dice1(Dice1,N));
@@ -418,16 +427,32 @@ roll(N,R):-
 
 %makelist_of_circles(R) R is the one who starts
 makelist_of_circles(R):-
+	mode(vs_computer),
 	colors(Color,_),
-        findall(Circle1, piecepic(Circle1,_,_,Color), L1),
+    findall(Circle1, piecepic(Circle1,_,_,Color), L1),
 	recogniser_pieces(L1),
 	((R is 1, moveU);(R is 2, moveComputer)).
+	
+%makelist_of_circles(R) R is the one who starts
+makelist_of_circles(R):-
+	mode(vs_player),
+	colors(Color,EColor),
+    findall(Circle1, piecepic(Circle1,_,_,Color), L1),
+	recogniser_pieces(L1),
+	findall(Circle1, piecepic(Circle1,_,_,EColor), L2),
+	recogniser_pieces2(L2),
+	((R is 1, moveU);(R is 2, moveU2)).
 
 %adding recogniser to player's pieces (circles)
 recogniser_pieces([]).
 recogniser_pieces([H|T]):-
 	send(H,recogniser,click_gesture(left,'',single,message(@prolog,mark,H))),
 	recogniser_pieces(T).
+	
+recogniser_pieces2([]).
+recogniser_pieces2([H|T]):-
+	send(H,recogniser,click_gesture(left,'',single,message(@prolog,mark2,H))),
+	recogniser_pieces2(T).
 
 %player's turn
 moveU:-
@@ -445,16 +470,17 @@ moveU:-
 	%asserting no circle has been marked for movement
 	assert(marked(_,0)),
 	%rolling numbers of dices, F is Dice1 D is Dice2
-        random_between(1,6,F),
-        random_between(1,6,D),
+       keep_rolling,
+       keep_rolling,
+       keep_rolling,
+       keep_rolling,
+       keep_rolling,
+	   random_between(1,6,F),
+       random_between(1,6,D),
        write('Player Dices: ['), write(F:D), writeln(']'),
-       keep_rolling,
-       keep_rolling,
-       keep_rolling,
-       keep_rolling,
-       keep_rolling,
         roll(F,1),
         roll(D,2),
+		
 
        dice1(_,Cube1),
        dice2(_,Cube2),
@@ -466,11 +492,54 @@ moveU:-
        %incase of no movement
         findall(Pos, pieces(Pos,_,Color,_), L),
 
-       (((marked(_,0), not(isnt_at_home1(Color)),no_move_u(L,Cube1), no_move_u(L,Cube2), nomove, changing_turn_to_computer);
+       (((marked(_,0), not(isnt_at_home1(Color)),no_move_u(L,Cube1), no_move_u(L,Cube2), nomove, (mode(vs_computer),changing_turn_to_computer;moveU2));
         (isnt_at_home1(Color),is_there_move));true).
 
 
 moveU.
+
+moveU2:-
+	%reseting dynamics for player's turn
+	retractall(turn(_)),
+	assert(turn(player2)),
+	double(false,false),
+       dice1(Dice1,_),
+       dice2(Dice2,_),
+       %removing dices pics and its former info
+       free(Dice1), free(Dice2),
+       retractall(dice1(_,_)),
+       retractall(dice2(_,_)),
+	retractall(marked(_,_)),
+	%asserting no circle has been marked for movement
+	assert(marked(_,0)),
+	%rolling numbers of dices, F is Dice1 D is Dice2
+       keep_rolling,
+       keep_rolling,
+       keep_rolling,
+       keep_rolling,
+       keep_rolling,
+	   random_between(1,6,F),
+       random_between(1,6,D),
+       write('Player Dices: ['), write(F:D), writeln(']'),
+        roll(F,1),
+        roll(D,2),
+		
+
+       dice1(_,Cube1),
+       dice2(_,Cube2),
+       %incase of double
+       ((Cube1=Cube2, retractall(double(_,_)), assert(double(true,true)));
+	(Cube1\=Cube2)),
+
+       colors(_,Color),
+       %incase of no movement
+        findall(Pos, pieces(Pos,_,Color,_), L),
+
+       (((marked(_,0), not(isnt_at_home2(Color)),no_move_u2(L,Cube1), no_move_u2(L,Cube2), nomove, moveU);
+        (isnt_at_home2(Color),is_there_move));true).
+
+
+moveU2.
 
 %checking if all pieces in base of player
 isnt_at_home1(Color):-
@@ -528,6 +597,18 @@ no_move_u([H|L1],Cube):-
 	(H1=<0)),
 
 	no_move_u(L1,Cube).
+	
+no_move_u2([],_).
+no_move_u2([H|L1],Cube):-
+	H1 is H+Cube,
+	colors(Color,_),
+
+	((pieces(H1,X,Color,_),
+	X>1,
+	H1<25);
+	(H1>=25)),
+
+	no_move_u2(L1,Cube).
 
 %mark(Top) Top circle in column so you can mark it for movement
 mark(Top):-
@@ -619,7 +700,7 @@ mark(Top):-
 	((dice2(Dice2,_), free(Dice2), retractall(dice2(_,_)));true),
 	retractall(double(_,_)),
 	assert(double(false,false)),
-        moveComputer.
+    (mode(vs_computer),moveComputer;moveU2).
 
 %cant click on other circles that are captive
 mark(Top):-
@@ -631,6 +712,109 @@ mark(Top):-
 	M\=Top.
 
 mark(_).
+
+%mark(Top) Top circle in column so you can mark it for movement
+mark2(Top):-
+	check4(false), %inorder to block pressing circles while displaying no move msg
+	turn(player2), %checking who's turn that is
+	pieces(0,_,_,Top), %25 is the captive piece of player so must choose that on
+	marked(_,0),
+	retractall(marked(_,_)),
+	assert(marked(Top,1)),
+	%asserting marked(Top Circle,Amount of marked circles)
+	send(Top,fill_pattern,colour(green)),
+
+	%checking player's movement with the 2 dices
+	((not(dice1(_,_)),
+	dice2(Dice2,Cube2),
+	Pos1 is 0+Cube2,
+	Pos2 is 0+Cube2);
+
+	(not(dice2(_,_)),
+	dice1(Dice1,Cube1),
+	Pos1 is 0+Cube1,
+	Pos2 is 0+Cube1);
+
+	 (dice1(Dice1,Cube1),
+	 dice2(Dice2,Cube2),
+	Pos1 is 0+Cube1,
+	Pos2 is 0+Cube2)),
+	colors(Color,_),
+	%checks if there's column of computer's pieces
+	    (are_there_any_pie(Color,Pos1,2);
+	    are_there_any_pie(Color,Pos2,2)),
+	 %reseting check2
+	retractall(check2(_)),
+	assert(check2(false)),
+	%clicking the dice you'd like for moving the marked circle piece
+	((dice1(_,_), send(Dice1,recogniser,click_gesture(left,'',single,message(@prolog,getNewPos2,1))));true),
+	((dice2(_,_), send(Dice2,recogniser,click_gesture(left,'',single,message(@prolog,getNewPos2,2))));true).
+
+%for clicking circles that are not in top column
+mark2(Top):-
+      check4(false),
+      not(pieces(_,_,_,Top)).
+
+mark2(Top):-
+	check4(false),
+	not(pieces(0,_,_,_)), %no captive pieces
+	turn(player2),
+	marked(_,0),
+	retractall(marked(_,_)),
+	colors(_,EColor),
+	pieces(_,_,EColor,Top), %checking if the selected circle is top circle in column from player
+	assert(marked(Top,1)), %asserting marked(Top Circle,Amount of marked circles)
+	send(Top,fill_pattern,colour(green)),
+	dice1(Dice1,_),
+	dice2(Dice2,_),
+	%clicking the dice you'd like for moving the marked circle piece
+	send(Dice1,recogniser,click_gesture(left,'',single,message(@prolog,getNewPos2,1))),
+	send(Dice2,recogniser,click_gesture(left,'',single,message(@prolog,getNewPos2,2))).
+
+% click other top piece M instead of your previous Top, changing
+% selected cirlce
+mark2(M):-
+	check4(false),
+	turn(player2),
+	not(pieces(0,_,_,_)),
+	marked(Top,1),
+	M\=Top,
+	colors(_,EColor),
+	send(Top,fill_pattern,colour(EColor)),
+	pieces(_,_,EColor,M),
+	retractall(marked(_,_)),
+	assert(marked(M,1)),
+	send(M,fill_pattern,colour(green)),
+	retractall(check2(_)),
+	assert(check2(false)).
+
+%selected circle is captive and can not move
+mark2(Top):-
+	check4(false),
+	turn(player2),
+	check2(true),
+	pieces(0,_,_,Top), %25 is captive line
+	nomove, %nomove msg
+	marked(Top,1),
+	colors(_,EColor), %Color is player's color
+	send(Top,fill_pattern,colour(EColor)),
+	%if you got any dice, remove them
+	((dice1(Dice1,_), free(Dice1), retractall(dice1(_,_)));true),
+	((dice2(Dice2,_), free(Dice2), retractall(dice2(_,_)));true),
+	retractall(double(_,_)),
+	assert(double(false,false)),
+    moveU.
+
+%cant click on other circles that are captive
+mark2(Top):-
+	check4(false),
+	turn(player2),
+	pieces(0,_,_,_),
+	marked(_,0),
+	pieces(0,_,_,M),
+	M\=Top.
+
+mark2(_).
 
 %getNewPos(Dice)
 %getting new pos for dice 1
@@ -714,7 +898,7 @@ getNewPos(1):-
 	  retractall(piecepic(_,A,Main,_)),
 	  retractall(marked(_,_)),
 	  assert(marked(_,0)),
-	  (win;is_there_move;moveComputer) );
+	  (win;is_there_move;(mode(vs_computer),moveComputer;moveU2)) );
 
 
 
@@ -742,7 +926,7 @@ getNewPos(1):-
 	  retractall(piecepic(_,A,Poss,_)),
 	   retractall(marked(_,_)),
 	  assert(marked(_,0)),
-	  (win;is_there_move;moveComputer));
+	  (win;is_there_move;(mode(vs_computer),moveComputer;moveU2)));
 
 	(send(Top,fill_pattern,colour(Color)),
 	retractall(marked(_,_)),
@@ -826,7 +1010,7 @@ getNewPos(2):-
 	  retractall(marked(_,_)),
 	  assert(marked(_,0)),
 
-	(win;is_there_move;moveComputer));
+	(win;is_there_move;(mode(vs_computer),moveComputer;moveU2)));
 
 
 
@@ -854,13 +1038,243 @@ getNewPos(2):-
 	  retractall(piecepic(_,A,Pos1,_)),
 	   retractall(marked(_,_)),
 	  assert(marked(_,0)),
-	  (win;moveComputer));
+	  (win;(mode(vs_computer),moveComputer;moveU2)));
 
 	(send(Top,fill_pattern,colour(Color)),
 	retractall(marked(_,_)),
 	assert(marked(_,0))))))).
 
 getNewPos(_).
+
+%getNewPos(Dice)
+%getting new pos for dice 1
+getNewPos2(1):-
+	dice1(Dice,Main),
+	(dice2(_,Second);true),
+	marked(Top,1),
+	colors(_,Color),
+	pieces(Pos,A,Color,Top),
+	Pos1 is Pos+Main,
+	(
+	%when not all pieces in base moves normally
+	((pieces(18,_,Color,_);
+	pieces(17,_,Color,_);
+	pieces(16,_,Color,_);
+	pieces(15,_,Color,_);
+	pieces(14,_,Color,_);
+	pieces(13,_,Color,_);
+	pieces(12,_,Color,_);
+	pieces(11,_,Color,_);
+	pieces(10,_,Color,_);
+	pieces(9,_,Color,_);
+	pieces(8,_,Color,_);
+	pieces(7,_,Color,_);
+	pieces(6,_,Color,_);
+	pieces(5,_,Color,_);
+	pieces(4,_,Color,_);
+	pieces(3,_,Color,_);
+	pieces(2,_,Color,_);
+	pieces(1,_,Color,_);
+	pieces(0,_,Color,_)),
+
+	((Pos1>=1, Pos1=<24,
+	possible(Top,A,Pos1,Pos,Main,Second,Dice,1));
+
+	(Pos1>24, send(Top,fill_pattern,colour(Color)),
+	retractall(marked(_,_)),
+	assert(marked(_,0)))));
+
+	(%when all pieces in base moving them out or closer to 1
+	not(pieces(18,_,Color,_)),
+	not(pieces(17,_,Color,_)),
+	not(pieces(16,_,Color,_)),
+	not(pieces(15,_,Color,_)),
+	not(pieces(14,_,Color,_)),
+	not(pieces(13,_,Color,_)),
+	not(pieces(12,_,Color,_)),
+	not(pieces(11,_,Color,_)),
+	not(pieces(10,_,Color,_)),
+	not(pieces(9,_,Color,_)),
+	not(pieces(8,_,Color,_)),
+	not(pieces(7,_,Color,_)),
+	not(pieces(6,_,Color,_)),
+	not(pieces(5,_,Color,_)),
+	not(pieces(4,_,Color,_)),
+	not(pieces(3,_,Color,_)),
+	not(pieces(2,_,Color,_)),
+	not(pieces(1,_,Color,_)),
+	not(pieces(0,_,Color,_)),
+
+
+	 (%when new pos isn't getting them out, move normally
+	 Pos1<25,  possible(Top,A,Pos1,Pos,Main,Second,Dice,1));
+	 (%when new pos is 25, that means getting them out from the column is correct
+	 Pos1=25,
+	  pieces(Main,A,_,Top),
+	  NewA is A-1,
+	  dice1(Dice1,_),
+
+	  ((double(true,T),
+	  retractall(double(_,_)),
+	  assert(double(false,T)));
+
+	 (double(false,_),
+	  free(Dice1),
+	  retractall(dice1(_,_)))),
+
+
+	  isEmpty(NewA,Main,Color),
+	  free(Top),
+	  retractall(piecepic(_,A,Main,_)),
+	  retractall(marked(_,_)),
+	  assert(marked(_,0)),
+	  (win;is_there_move;moveU) );
+
+
+
+	  (%when new pos is below 0, that means getting them out when you don't have higher columns of pieces
+	   Pos1>25,
+
+	 ((pieces(Poss,A,_,Top),
+	  findall(F, (pieces(F,_,Color,_),(F<Poss,F<18)), L1),
+	   length(L1,Length),
+	   Length is 0,
+	   NewA is A-1,
+	  dice1(Dice1,_),
+
+	  ((double(true,T),
+	  retractall(double(_,_)),
+	  assert(double(false,T)));
+
+	 (double(false,_),
+	  free(Dice1),
+	  retractall(dice1(_,_)))),
+
+
+	  isEmpty(NewA,Poss,Color),
+	  free(Top),
+	  retractall(piecepic(_,A,Poss,_)),
+	   retractall(marked(_,_)),
+	  assert(marked(_,0)),
+	  (win;is_there_move;moveU));
+
+	(send(Top,fill_pattern,colour(Color)),
+	retractall(marked(_,_)),
+	assert(marked(_,0))))))).
+
+%getting new pos for dice 2
+getNewPos2(2):-
+	dice2(Dice,Main),
+	(dice1(_,Second);true),
+	marked(Top,1),
+	colors(_,Color),
+	pieces(Pos,A,Color,Top),
+	Pos1 is Pos+Main,
+	(((pieces(18,_,Color,_);
+	pieces(17,_,Color,_);
+	pieces(16,_,Color,_);
+	pieces(15,_,Color,_);
+	pieces(14,_,Color,_);
+	pieces(13,_,Color,_);
+	pieces(12,_,Color,_);
+	pieces(11,_,Color,_);
+	pieces(10,_,Color,_);
+	pieces(9,_,Color,_);
+	pieces(8,_,Color,_);
+	pieces(7,_,Color,_);
+	pieces(6,_,Color,_);
+	pieces(5,_,Color,_);
+	pieces(4,_,Color,_);
+	pieces(3,_,Color,_);
+	pieces(2,_,Color,_);
+	pieces(1,_,Color,_);
+	pieces(0,_,Color,_)),
+
+	((Pos1>=1, Pos1=<24,
+	possible(Top,A,Pos1,Pos,Main,Second,Dice,2));
+
+	(Pos1>24, send(Top,fill_pattern,colour(Color)),
+	retractall(marked(_,_)),
+	assert(marked(_,0)))));
+
+	(not(pieces(18,_,Color,_)),
+	not(pieces(17,_,Color,_)),
+	not(pieces(16,_,Color,_)),
+	not(pieces(15,_,Color,_)),
+	not(pieces(14,_,Color,_)),
+	not(pieces(13,_,Color,_)),
+	not(pieces(12,_,Color,_)),
+	not(pieces(11,_,Color,_)),
+	not(pieces(10,_,Color,_)),
+	not(pieces(9,_,Color,_)),
+	not(pieces(8,_,Color,_)),
+	not(pieces(7,_,Color,_)),
+	not(pieces(6,_,Color,_)),
+	not(pieces(5,_,Color,_)),
+	not(pieces(4,_,Color,_)),
+	not(pieces(3,_,Color,_)),
+	not(pieces(2,_,Color,_)),
+	not(pieces(1,_,Color,_)),
+	not(pieces(0,_,Color,_)),
+
+	 (Pos1<25,
+	 possible(Top,A,Pos1,Pos,Main,Second,Dice,2));
+
+	 (Pos1=25,
+	  pieces(Main,A,_,Top),
+	  dice2(Dice2,_),
+
+	  ((double(T,true),
+	  retractall(double(_,_)),
+	  assert(double(T,false)));
+
+	 (double(_,false),
+	  free(Dice2),
+	  retractall(dice2(_,_)))),
+
+
+	  NewA is A-1,
+	  isEmpty(NewA,Main,Color),
+	  free(Top),
+	  retractall(piecepic(_,A,Main,_)),
+	  retractall(marked(_,_)),
+	  assert(marked(_,0)),
+
+	(win;is_there_move;moveU));
+
+
+
+
+	  (Pos1>25,
+
+	 ((pieces(Poss,A,_,Top),
+	  findall(F, (pieces(F,_,Color,_),F<Poss,F<18), L1),
+	   length(L1,Length),
+	   Length is 0,
+	   dice2(Dice2,_),
+
+	   ((double(T,true),
+	  retractall(double(_,_)),
+	  assert(double(T,false)));
+
+	 (double(_,false),
+	  free(Dice2),
+	  retractall(dice2(_,_)))),
+
+
+	   free(Top),
+	  NewA is A-1,
+	  isEmpty(NewA,Poss,Color),
+	  retractall(piecepic(_,A,Pos1,_)),
+	   retractall(marked(_,_)),
+	  assert(marked(_,0)),
+	  (win;moveU));
+
+	(send(Top,fill_pattern,colour(Color)),
+	retractall(marked(_,_)),
+	assert(marked(_,0))))))).
+
+getNewPos2(_).
 
 %win msg for player
 win:-
@@ -933,7 +1347,7 @@ updown(Pos,A,Pixel):-
 %possible movement for dice 1
 possible(Top,A,Pos1,Pos,Cube,Cube2,Dice,1):-
 	dice1(Dice,Cube),
-	colors(Color,EColor),
+	(turn(player2), colors(EColor,Color);colors(Color,EColor)),
 
 	((Cube=Cube2,
 	   ((not(pieces(Pos1,X,EColor,_)));
@@ -1052,7 +1466,7 @@ possible(Top,A,Pos1,Pos,Cube,Cube2,Dice,1):-
 %possible movement for dice 2
 possible(Top,A,Pos1,Pos,Cube,Cube1,Dice,2):-
 	dice2(Dice,Cube),
-	colors(Color,EColor),
+	(turn(player2), colors(EColor,Color);colors(Color,EColor)),
 
 	((Cube=Cube1,
 	   ((not(pieces(Pos1,X,EColor,_)));
@@ -1171,11 +1585,12 @@ possible(Top,A,Pos1,Pos,Cube,Cube1,Dice,2):-
 
 %checks if there's a move for player in 2 dices
 is_there_move:-
-	colors(Color,_),
+	(turn(player2), colors(_,Color);colors(Color,_)),
 	not(isnt_at_home1(Color)),
 	findall(Pos, pieces(Pos,_,Color,_), NL),
 	dice1(Dice11,Cube11),
 	dice2(Dice22,Cube22),
+	(turn(player2), no_move_u2(NL,Cube11);no_move_u(NL,Cube11)),
 	no_move_u(NL,Cube11),
 	no_move_u(NL,Cube22),
 	 nomove,
@@ -1184,79 +1599,79 @@ is_there_move:-
 
 	retractall(dice1(_,_)),
 	retractall(dice2(_,_)),
-	moveComputer.
+	(mode(vs_computer),moveComputer;(turn(player),moveU2;moveU)).
 
 %checks if there's a move for player in dice 2 in base
 is_there_move:-
-	colors(Color,_),
+	(turn(player2), colors(_,Color);colors(Color,_)),
 	not(isnt_at_home1(Color)),
 	findall(Pos, pieces(Pos,_,Color,_), NL),
 	not(dice1(_,_)),
 	dice2(Dice22,Cube22),
-	no_move_u(NL,Cube22),
+	(turn(player2), no_move_u2(NL,Cube22);no_move_u(NL,Cube22)),
 	nomove,
 	free(Dice22),
 	retractall(dice2(_,_)),
-	moveComputer.
+	(mode(vs_computer),moveComputer;(turn(player),moveU2;moveU)).
 
 %checks if there's a move for player in dice 1 in base
 is_there_move:-
-	colors(Color,_),
+	(turn(player2), colors(_,Color);colors(Color,_)),
 	not(isnt_at_home1(Color)),
 	findall(Pos, pieces(Pos,_,Color,_), NL),
 	dice1(Dice11,Cube11),
 	not(dice2(_,_)),
-	no_move_u(NL,Cube11),
+	(turn(player2), no_move_u2(NL,Cube11);no_move_u(NL,Cube11)),
 	nomove,
 	free(Dice11),
 	retractall(dice1(_,_)),
-	moveComputer.
+	(mode(vs_computer),moveComputer;(turn(player),moveU2;moveU)).
 
 %checks if there's a move for player in dice 1 in base
 is_there_move:-
-	colors(Color,_),
+	(turn(player2), colors(_,Color);colors(Color,_)),
 	not(isnt_at_home1(Color)),
 	findall(Pos, pieces(Pos,_,Color,_), NL),
 	dice1(Dice11,Cube11),
 	not(dice2(_,_)),
-	no_move_us(NL,Cube11),
+	(turn(player2), no_move_us2(NL,Cube11);no_move_us(NL,Cube11)),
 	nomove,
 	 free(Dice11),
 	 retractall(dice1(_,_)),
-	 moveComputer.
+	 (mode(vs_computer),moveComputer;(turn(player),moveU2;moveU)).
 
 %checks if there's a move for player in dice 2 in base
 is_there_move:-
-	colors(Color,_),
+	(turn(player2), colors(_,Color);colors(Color,_)),
 	not(isnt_at_home1(Color)),
 	findall(Pos, pieces(Pos,_,Color,_), NL),
 	not(dice1(_,_)),
 	dice2(Dice22,Cube22),
-	no_move_us(NL,Cube22),
+	(turn(player2), no_move_us2(NL,Cube22);no_move_us(NL,Cube22)),
 	nomove,
 	 free(Dice22),
 	 retractall(dice2(_,_)),
-	 moveComputer.
+	 (mode(vs_computer),moveComputer;(turn(player),moveU2;moveU)).
 
 %checks if there's a move for player in 2 dices in base
 is_there_move:-
-	colors(Color,_),
+	(turn(player2), colors(_,Color);colors(Color,_)),
 	not(isnt_at_home1(Color)),
 	findall(Pos, pieces(Pos,_,Color,_), NL),
 	dice1(Dice11,Cube11),
 	dice2(Dice22,Cube22),
-	no_move_us(NL,Cube11),
-	no_move_us(NL,Cube22),
+	(turn(player2), no_move_us2(NL,Cube11);no_move_us(NL,Cube11)),
+	(turn(player2), no_move_us2(NL,Cube22);no_move_us(NL,Cube22)),
 	nomove,
 	 free(Dice11),
 	 free(Dice22),
 	 retractall(dice1(_,_)),
 	 retractall(dice2(_,_)),
-	 moveComputer.
+	 (mode(vs_computer),moveComputer;(turn(player),moveU2;moveU)).
 
 %move to computer's turn
 is_there_move:-
-	moveComputer.
+	(mode(vs_computer),moveComputer;(turn(player),moveU2;moveU)).
 
 %no_move_us(List of Pos,Cube) checks if computer can move
 no_move_us([],_).
@@ -1273,6 +1688,22 @@ no_move_us([H|L],Cube):-
 	   length(L1,Length),
 	   Length\=0)),
 	no_move_us(L,Cube).
+	
+%no_move_us(List of Pos,Cube) checks if computer can move
+no_move_us2([],_).
+no_move_us2([H|L],Cube):-
+	Pos1 is H+Cube,
+	colors(Color,EColor),
+
+	((Pos1<25,
+	pieces(Pos1,X,Color,_),
+	X>1);
+
+	(Pos1>0,
+	 findall(F, (pieces(F,_,EColor,_),F<H,H<18), L1),
+	   length(L1,Length),
+	   Length\=0)),
+	no_move_us2(L,Cube).
 
 
 %computer's turn
@@ -1818,12 +2249,14 @@ settings:-
 	new(Dialog,dialog('Settings')),
 	send_list(Dialog,append,
 		  [
+			  new(M, menu(mode)),
 		      new(S, menu(side)),
 		      new(C, menu(colors,cycle)),
 
 
 			button(ok,and(message(@prolog,
 				 game,
+				 M?selection,
 				 S?selection,
 			         C?selection),
 				 message(Dialog,destroy))),
@@ -1832,6 +2265,7 @@ settings:-
 				 message(Dialog,destroy)))
 
 		  ]),
+	send_list(M,append,[vs_computer,vs_player]),
 	send_list(S,append,[right,left,random]),
 	send_list(C,append,[black_vs_white,
 			    white_vs_black,

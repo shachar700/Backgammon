@@ -1,0 +1,4 @@
+issues:
+- in og, computer picks 1 and no move when can do 3 and 1. (not really an issue just a grading preference)
+- in og, game can get stuck when no moves when trying to get into base - needs further testing
+- in pvp, no dices spawn after eaten piece can't move.
