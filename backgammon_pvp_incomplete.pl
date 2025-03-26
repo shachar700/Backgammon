@@ -1671,7 +1671,14 @@ is_there_move:-
 
 %move to computer's turn
 is_there_move:-
-	(mode(vs_computer),moveComputer;(turn(player),moveU2;moveU)).
+	(mode(vs_computer),moveComputer;false).
+	
+is_there_move :-
+    mode(vs_player),
+    not(dice1(_, _)), not(dice2(_, _)),
+    assert(dice1(stub,_)),
+    assert(dice2(stub,_)),
+    (turn(player), moveU2 ; moveU).
 
 %no_move_us(List of Pos,Cube) checks if computer can move
 no_move_us([],_).
