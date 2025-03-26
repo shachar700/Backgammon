@@ -1280,7 +1280,7 @@ getNewPos2(_).
 win:-
 	colors(Color,EColor),
 	not(pieces(_,_,Color,_)),
-	new(Win,text('Player wins!')),
+	(turn(player), new(Win,text('Player wins!'));new(Win,text('Player 2 wins!'))),
 	send(Win,colour(Color)),
 	send(Win, font, font(times, bold, 36)),
        send(@window,display,Win,point(100,330)),
@@ -1370,7 +1370,7 @@ possible(Top,A,Pos1,Pos,Cube,Cube2,Dice,1):-
 	side(M), lineX(Pos1,X,M), updown(Pos1,1,Y),
 	 send(Top,x(X)),
 	 send(Top,y(Y)),
-	write('Pl moving: '), writeln(Pos+Cube=Pos1),
+	(turn(player2), write('Pl 2 moving: '), writeln(Pos+Cube=Pos1); write('Pl moving: '), writeln(Pos-Cube=Pos1)),
 
 	 ((Cube\=Cube2,
 	free(Dice),
@@ -1395,7 +1395,7 @@ possible(Top,A,Pos1,Pos,Cube,Cube2,Dice,1):-
 	side(M), lineX(Pos1,X,M), updown(Pos1,NewB,Y),
 	 send(Top,x(X)),
 	  send(Top,y(Y)),
-	  write('Pl moving: '), writeln(Pos+Cube=Pos1),
+	 (turn(player2), write('Pl 2 moving: '), writeln(Pos+Cube=Pos1); write('Pl moving: '), writeln(Pos-Cube=Pos1)),
 
 	     ((Cube\=Cube2,
 	free(Dice),
@@ -1411,6 +1411,10 @@ possible(Top,A,Pos1,Pos,Cube,Cube2,Dice,1):-
 		retractall(pieces(Pos1,_,_,_)),
 		assert(pieces(Pos1,1,Color,Top)),
 
+		
+		(turn(player),
+			
+			
 		((not(pieces(0,_,_,_)),
 		assert(pieces(0,1,EColor,WPart)),
 		 retractall(piecepic(WPart,1,Pos1,_)),
@@ -1433,7 +1437,33 @@ possible(Top,A,Pos1,Pos,Cube,Cube2,Dice,1):-
 		isEmpty(NewA,Pos,Color),
 
 		pieces(0,C,_,WPart),
-		side(M), lineX(0,D,M), updown(0,C,F),
+		side(M), lineX(0,D,M), updown(0,C,F)
+		
+		;
+		
+		((not(pieces(25,_,_,_)),
+		assert(pieces(25,1,EColor,WPart)),
+		 retractall(piecepic(WPart,1,Pos1,_)),
+		  retractall(piecepic(_,A,Pos,_)),
+		assert(piecepic(WPart,1,25,EColor)),
+		 assert(piecepic(Top,1,Pos1,Color)));
+	        (pieces(25,R,_,_),
+		 R>=1,
+		 R1 is R+1,
+		 retractall(pieces(25,_,_,_)),
+		 assert(pieces(25,R1,EColor,WPart)),
+		retractall(piecepic(_,1,Pos1,_)),
+		 retractall(piecepic(_,A,Pos,_)),
+		assert(piecepic(WPart,R1,25,EColor)),
+		assert(piecepic(Top,1,Pos1,Color)))),
+
+
+
+	         NewA is A-1,
+		isEmpty(NewA,Pos,Color),
+
+		pieces(25,C,_,WPart),
+		side(M), lineX(25,D,M), updown(25,C,F)),
 
 		send(WPart,x(D)),
 		send(WPart,y(F)),
@@ -1442,9 +1472,10 @@ possible(Top,A,Pos1,Pos,Cube,Cube2,Dice,1):-
 
 		send(Top,x(X)),
 		send(Top,y(Y)),
-		write('Pl moving: '), writeln(Pos+Cube=Pos1),
+		
+		(turn(player2), write('Pl 2 moving: '), writeln(Pos+Cube=Pos1); write('Pl moving: '), writeln(Pos-Cube=Pos1)),
 
-		((Cube\=Cube2,	free(Dice),	 retractall(dice1(_,_)));true) ,
+		((Cube\=Cube2,	free(Dice),	 retractall(dice1(_,_)));true),
 
 		retractall(marked(_,_)),
 		assert(marked(_,0))
@@ -1491,7 +1522,7 @@ possible(Top,A,Pos1,Pos,Cube,Cube1,Dice,2):-
 	side(M), lineX(Pos1,X,M), updown(Pos1,1,Y),
 	 send(Top,x(X)),
 	 send(Top,y(Y)),
-	 write('Pl moving: '), writeln(Pos+Cube=Pos1),
+	 (turn(player2), write('Pl 2 moving: '), writeln(Pos+Cube=Pos1); write('Pl moving: '), writeln(Pos-Cube=Pos1)),
 
 	 ((Cube\=Cube1,
 	free(Dice),
@@ -1516,7 +1547,7 @@ possible(Top,A,Pos1,Pos,Cube,Cube1,Dice,2):-
 	side(M), lineX(Pos1,X,M), updown(Pos1,NewB,Y),
 	 send(Top,x(X)),
 	  send(Top,y(Y)),
-	  write('Pl moving: '), writeln(Pos+Cube=Pos1),
+	  (turn(player2), write('Pl 2 moving: '), writeln(Pos+Cube=Pos1); write('Pl moving: '), writeln(Pos-Cube=Pos1)),
 
 	 ((Cube\=Cube1,
 	free(Dice),
@@ -1530,6 +1561,8 @@ possible(Top,A,Pos1,Pos,Cube,Cube1,Dice,2):-
 		piecepic(WPart,1,Pos1,EColor),
 		retractall(pieces(Pos1,_,_,_)),
 		assert(pieces(Pos1,1,Color,Top)),
+
+		(turn(player),
 
 		((not(pieces(0,_,_,_)),
 		assert(pieces(0,1,EColor,WPart)),
@@ -1553,7 +1586,33 @@ possible(Top,A,Pos1,Pos,Cube,Cube1,Dice,2):-
 		isEmpty(NewA,Pos,Color),
 
 		pieces(0,C,_,WPart),
-		side(M),lineX(0,D,M), updown(0,C,F),
+		side(M),lineX(0,D,M), updown(0,C,F)
+		
+		;
+		
+		((not(pieces(25,_,_,_)),
+		assert(pieces(25,1,EColor,WPart)),
+		 retractall(piecepic(WPart,1,Pos1,_)),
+		  retractall(piecepic(_,A,Pos,_)),
+		assert(piecepic(WPart,1,25,EColor)),
+		 assert(piecepic(Top,1,Pos1,Color)));
+	        (pieces(25,R,_,_),
+		 R>=1,
+		 R1 is R+1,
+		 retractall(pieces(25,_,_,_)),
+		 assert(pieces(25,R1,EColor,WPart)),
+		retractall(piecepic(_,1,Pos1,_)),
+		 retractall(piecepic(_,A,Pos,_)),
+		assert(piecepic(WPart,R1,25,EColor)),
+		assert(piecepic(Top,1,Pos1,Color)))),
+
+
+
+	         NewA is A-1,
+		isEmpty(NewA,Pos,Color),
+
+		pieces(25,C,_,WPart),
+		side(M),lineX(25,D,M), updown(25,C,F)),
 
 		send(WPart,x(D)),
 		send(WPart,y(F)),
@@ -1562,7 +1621,7 @@ possible(Top,A,Pos1,Pos,Cube,Cube1,Dice,2):-
 
 		send(Top,x(X)),
 		send(Top,y(Y)),
-		write('Pl moving: '), writeln(Pos+Cube=Pos1),
+		(turn(player2), write('Pl 2 moving: '), writeln(Pos+Cube=Pos1); write('Pl moving: '), writeln(Pos-Cube=Pos1)),
 		((Cube\=Cube1,
 	free(Dice),
 	 retractall(dice2(_,_)));true) ,
@@ -1671,7 +1730,14 @@ is_there_move:-
 
 %move to computer's turn
 is_there_move:-
-	(mode(vs_computer),moveComputer;(turn(player),moveU2;moveU)).
+	(mode(vs_computer),moveComputer;false).
+	
+is_there_move :-
+    mode(vs_player),
+    not(dice1(_, _)), not(dice2(_, _)),
+    assert(dice1(stub,_)),
+    assert(dice2(stub,_)),
+    (turn(player), moveU2 ; moveU).
 
 %no_move_us(List of Pos,Cube) checks if computer can move
 no_move_us([],_).
