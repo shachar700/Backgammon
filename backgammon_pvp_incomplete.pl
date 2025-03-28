@@ -456,6 +456,7 @@ recogniser_pieces2([H|T]):-
 
 %player's turn
 moveU:-
+	writeln('moveU start'),
 	%reseting dynamics for player's turn
 	retractall(turn(_)),
 	assert(turn(player)),
@@ -492,13 +493,14 @@ moveU:-
        %incase of no movement
         findall(Pos, pieces(Pos,_,Color,_), L),
 
-       (((marked(_,0), not(isnt_at_home1(Color)),no_move_u(L,Cube1), no_move_u(L,Cube2), nomove, (mode(vs_computer),changing_turn_to_computer;moveU2));
+       (((marked(_,0), not(isnt_at_home1(Color)),no_move_u(L,Cube1), no_move_u(L,Cube2), nomove, (mode(vs_computer),changing_turn_to_computer;retractall(double(_,_)), assert(double(false,false)), moveU2));
         (isnt_at_home1(Color),is_there_move));true).
 
 
 moveU.
 
 moveU2:-
+	writeln('moveU2 start'),
 	%reseting dynamics for player's turn
 	retractall(turn(_)),
 	assert(turn(player2)),
@@ -535,7 +537,7 @@ moveU2:-
        %incase of no movement
         findall(Pos, pieces(Pos,_,Color,_), L),
 
-       (((marked(_,0), not(isnt_at_home2(Color)),no_move_u2(L,Cube1), no_move_u2(L,Cube2), nomove, moveU);
+       (((marked(_,0), not(isnt_at_home2(Color)),no_move_u2(L,Cube1), no_move_u2(L,Cube2), nomove, retractall(double(_,_)),assert(double(false,false)), moveU);
         (isnt_at_home2(Color),is_there_move));true).
 
 
@@ -1644,6 +1646,7 @@ possible(Top,A,Pos1,Pos,Cube,Cube1,Dice,2):-
 
 %checks if there's a move for player in 2 dices
 is_there_move:-
+	writeln('is_there_move_1: start'),
 	(turn(player2), colors(_,Color), not(isnt_at_home2(Color));colors(Color,_), not(isnt_at_home1(Color))),
 	findall(Pos, pieces(Pos,_,Color,_), NL),
 	dice1(Dice11,Cube11),
@@ -1660,6 +1663,7 @@ is_there_move:-
 
 %checks if there's a move for player in dice 2 in base
 is_there_move:-
+	writeln('is_there_move_2: start'),
 	(turn(player2), colors(_,Color), not(isnt_at_home2(Color));colors(Color,_), not(isnt_at_home1(Color))),
 	findall(Pos, pieces(Pos,_,Color,_), NL),
 	not(dice1(_,_)),
@@ -1672,6 +1676,7 @@ is_there_move:-
 
 %checks if there's a move for player in dice 1 in base
 is_there_move:-
+	writeln('is_there_move_3: start'),
 	(turn(player2), colors(_,Color), not(isnt_at_home2(Color));colors(Color,_), not(isnt_at_home1(Color))),
 	findall(Pos, pieces(Pos,_,Color,_), NL),
 	dice1(Dice11,Cube11),
@@ -1684,11 +1689,12 @@ is_there_move:-
 
 %checks if there's a move for player in dice 1 in base
 is_there_move:-
+	writeln('is_there_move_4: start'),
 	(turn(player2), colors(_,Color), not(isnt_at_home2(Color));colors(Color,_), not(isnt_at_home1(Color))),
 	findall(Pos, pieces(Pos,_,Color,_), NL),
 	dice1(Dice11,Cube11),
 	not(dice2(_,_)),
-	(turn(player2), no_move_us2(NL,Cube11);no_move_us(NL,Cube11)),
+	(turn(player2), no_move_us(NL,Cube11);no_move_us2(NL,Cube11)),
 	nomove,
 	 free(Dice11),
 	 retractall(dice1(_,_)),
@@ -1696,11 +1702,12 @@ is_there_move:-
 
 %checks if there's a move for player in dice 2 in base
 is_there_move:-
+	writeln('is_there_move_5: start'),
 	(turn(player2), colors(_,Color), not(isnt_at_home2(Color));colors(Color,_), not(isnt_at_home1(Color))),
 	findall(Pos, pieces(Pos,_,Color,_), NL),
 	not(dice1(_,_)),
 	dice2(Dice22,Cube22),
-	(turn(player2), no_move_us2(NL,Cube22);no_move_us(NL,Cube22)),
+	(turn(player2), no_move_us(NL,Cube22);no_move_us2(NL,Cube22)),
 	nomove,
 	 free(Dice22),
 	 retractall(dice2(_,_)),
@@ -1708,12 +1715,13 @@ is_there_move:-
 
 %checks if there's a move for player in 2 dices in base
 is_there_move:-
+	writeln('is_there_move_6: start'),
 	(turn(player2), colors(_,Color), not(isnt_at_home2(Color));colors(Color,_), not(isnt_at_home1(Color))),
 	findall(Pos, pieces(Pos,_,Color,_), NL),
 	dice1(Dice11,Cube11),
 	dice2(Dice22,Cube22),
-	(turn(player2), no_move_us2(NL,Cube11);no_move_us(NL,Cube11)),
-	(turn(player2), no_move_us2(NL,Cube22);no_move_us(NL,Cube22)),
+	(turn(player2), no_move_us(NL,Cube11);no_move_us2(NL,Cube11)),
+	(turn(player2), no_move_us(NL,Cube22);no_move_us2(NL,Cube22)),
 	nomove,
 	 free(Dice11),
 	 free(Dice22),
@@ -1723,9 +1731,11 @@ is_there_move:-
 
 %move to computer's turn
 is_there_move:-
+	writeln('is_there_move_7: start'),
 	(mode(vs_computer),moveComputer;false).
 	
 is_there_move :-
+	writeln('is_there_move_8: start'),
     mode(vs_player),
     not(dice1(_, _)), not(dice2(_, _)),
     assert(dice1(stub,_)),
@@ -1759,7 +1769,7 @@ no_move_us2([H|L],Cube):-
 	X>1);
 
 	(Pos1>0,
-	 findall(F, (pieces(F,_,EColor,_),F<H,H<18), L1),
+	 findall(F, (pieces(F,_,EColor,_),F>H,H<18), L1),
 	   length(L1,Length),
 	   Length\=0)),
 	no_move_us2(L,Cube).
