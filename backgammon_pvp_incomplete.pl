@@ -520,7 +520,7 @@ moveU2:-
        keep_rolling,
 	   random_between(1,6,F),
        random_between(1,6,D),
-       write('Player Dices: ['), write(F:D), writeln(']'),
+       write('Player 2 Dices: ['), write(F:D), writeln(']'),
         roll(F,1),
         roll(D,2),
 		
@@ -1644,14 +1644,12 @@ possible(Top,A,Pos1,Pos,Cube,Cube1,Dice,2):-
 
 %checks if there's a move for player in 2 dices
 is_there_move:-
-	(turn(player2), colors(_,Color);colors(Color,_)),
-	not(isnt_at_home1(Color)),
+	(turn(player2), colors(_,Color), not(isnt_at_home2(Color));colors(Color,_), not(isnt_at_home1(Color))),
 	findall(Pos, pieces(Pos,_,Color,_), NL),
 	dice1(Dice11,Cube11),
 	dice2(Dice22,Cube22),
 	(turn(player2), no_move_u2(NL,Cube11);no_move_u(NL,Cube11)),
-	no_move_u(NL,Cube11),
-	no_move_u(NL,Cube22),
+	(turn(player2), no_move_u2(NL,Cube22);no_move_u(NL,Cube22)),
 	 nomove,
 	 free(Dice11),
 	 free(Dice22),
@@ -1662,8 +1660,7 @@ is_there_move:-
 
 %checks if there's a move for player in dice 2 in base
 is_there_move:-
-	(turn(player2), colors(_,Color);colors(Color,_)),
-	not(isnt_at_home1(Color)),
+	(turn(player2), colors(_,Color), not(isnt_at_home2(Color));colors(Color,_), not(isnt_at_home1(Color))),
 	findall(Pos, pieces(Pos,_,Color,_), NL),
 	not(dice1(_,_)),
 	dice2(Dice22,Cube22),
@@ -1675,8 +1672,7 @@ is_there_move:-
 
 %checks if there's a move for player in dice 1 in base
 is_there_move:-
-	(turn(player2), colors(_,Color);colors(Color,_)),
-	not(isnt_at_home1(Color)),
+	(turn(player2), colors(_,Color), not(isnt_at_home2(Color));colors(Color,_), not(isnt_at_home1(Color))),
 	findall(Pos, pieces(Pos,_,Color,_), NL),
 	dice1(Dice11,Cube11),
 	not(dice2(_,_)),
@@ -1688,8 +1684,7 @@ is_there_move:-
 
 %checks if there's a move for player in dice 1 in base
 is_there_move:-
-	(turn(player2), colors(_,Color);colors(Color,_)),
-	not(isnt_at_home1(Color)),
+	(turn(player2), colors(_,Color), not(isnt_at_home2(Color));colors(Color,_), not(isnt_at_home1(Color))),
 	findall(Pos, pieces(Pos,_,Color,_), NL),
 	dice1(Dice11,Cube11),
 	not(dice2(_,_)),
@@ -1701,8 +1696,7 @@ is_there_move:-
 
 %checks if there's a move for player in dice 2 in base
 is_there_move:-
-	(turn(player2), colors(_,Color);colors(Color,_)),
-	not(isnt_at_home1(Color)),
+	(turn(player2), colors(_,Color), not(isnt_at_home2(Color));colors(Color,_), not(isnt_at_home1(Color))),
 	findall(Pos, pieces(Pos,_,Color,_), NL),
 	not(dice1(_,_)),
 	dice2(Dice22,Cube22),
@@ -1714,8 +1708,7 @@ is_there_move:-
 
 %checks if there's a move for player in 2 dices in base
 is_there_move:-
-	(turn(player2), colors(_,Color);colors(Color,_)),
-	not(isnt_at_home1(Color)),
+	(turn(player2), colors(_,Color), not(isnt_at_home2(Color));colors(Color,_), not(isnt_at_home1(Color))),
 	findall(Pos, pieces(Pos,_,Color,_), NL),
 	dice1(Dice11,Cube11),
 	dice2(Dice22,Cube22),
