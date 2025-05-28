@@ -460,9 +460,13 @@ moveU:-
 	%reseting dynamics for player's turn
 	retractall(turn(_)),
 	assert(turn(player)),
+	writeln("print 1"),
 	double(false,false),
+	writeln("print 2"),
        dice1(Dice1,_),
+	   writeln("print 3"),
        dice2(Dice2,_),
+	   writeln("print 4"),
 	   writeln('moveU passed the dice check'),
        %removing dices pics and its former info
        free(Dice1), free(Dice2),
@@ -505,9 +509,13 @@ moveU2:-
 	%reseting dynamics for player's turn
 	retractall(turn(_)),
 	assert(turn(player2)),
+	writeln("print 1"),
 	double(false,false),
+	writeln("print 2"),
        dice1(Dice1,_),
+	   writeln("print 3"),
        dice2(Dice2,_),
+	   writeln("print 4"),
 	   writeln('moveU2 passed the dice check'),
        %removing dices pics and its former info
        free(Dice1), free(Dice2),
@@ -700,8 +708,8 @@ mark(Top):-
 	colors(Color,_), %Color is player's color
 	send(Top,fill_pattern,colour(Color)),
 	%if you got any dice, remove them
-	((dice1(Dice1,_), free(Dice1), retractall(dice1(_,_)));true),
-	((dice2(Dice2,_), free(Dice2), retractall(dice2(_,_)));true),
+	((dice1(Dice1,_), mode(vs_computer), free(Dice1), retractall(dice1(_,_)));true),
+	((dice2(Dice2,_), mode(vs_computer), free(Dice2), retractall(dice2(_,_)));true),
 	retractall(double(_,_)),
 	assert(double(false,false)),
     (mode(vs_computer),moveComputer;moveU2).
@@ -803,8 +811,8 @@ mark2(Top):-
 	colors(_,EColor), %Color is player's color
 	send(Top,fill_pattern,colour(EColor)),
 	%if you got any dice, remove them
-	((dice1(Dice1,_), free(Dice1), retractall(dice1(_,_)));true),
-	((dice2(Dice2,_), free(Dice2), retractall(dice2(_,_)));true),
+	((dice1(Dice1,_), mode(vs_computer), free(Dice1), retractall(dice1(_,_)));true),
+	((dice2(Dice2,_), mode(vs_computer), free(Dice2), retractall(dice2(_,_)));true),
 	retractall(double(_,_)),
 	assert(double(false,false)),
     moveU.
@@ -1745,7 +1753,7 @@ is_there_move:-
 is_there_move :-
 	writeln('is_there_move_8: start'),
     mode(vs_player),
-    not(dice1(_, _)), not(dice2(_, _)),
+    (double(_,_), not(dice1(_, _)), not(dice2(_, _))),
     assert(dice1(stub,_)),
     assert(dice2(stub,_)),
 	writeln('...end8'),
