@@ -498,7 +498,7 @@ moveU:-
        %incase of no movement
         findall(Pos, pieces(Pos,_,Color,_), L),
 
-       (((marked(_,0), not(isnt_at_home1(Color)),no_move_u(L,Cube1), no_move_u(L,Cube2), nomove, (mode(vs_computer),changing_turn_to_computer;retractall(dice1(_,_)), retractall(dice2(_,_)), assert(dice1(stub,_)), assert(dice2(stub,_)),  retractall(double(_,_)), assert(double(false,false)), moveU2));
+       (((marked(_,0), not(isnt_at_home1(Color)),no_move_u(L,Cube1), no_move_u(L,Cube2), nomove, (mode(vs_computer),changing_turn_to_computer;moveU2));
         (isnt_at_home1(Color),is_there_move));true).
 
 
@@ -547,7 +547,7 @@ moveU2:-
        %incase of no movement
         findall(Pos, pieces(Pos,_,Color,_), L),
 
-       (((marked(_,0), not(isnt_at_home2(Color)),no_move_u2(L,Cube1), no_move_u2(L,Cube2), nomove, retractall(dice1(_,_)), retractall(dice2(_,_)), assert(dice1(stub,_)), assert(dice2(stub,_)), retractall(double(_,_)),assert(double(false,false)), moveU);
+       (((marked(_,0), not(isnt_at_home2(Color)),no_move_u2(L,Cube1), no_move_u2(L,Cube2), nomove, moveU);
         (isnt_at_home2(Color),is_there_move));true).
 
 
@@ -910,7 +910,7 @@ getNewPos(1):-
 	  retractall(piecepic(_,A,Main,_)),
 	  retractall(marked(_,_)),
 	  assert(marked(_,0)),
-	  (win;is_there_move;(mode(vs_computer),moveComputer;moveU2)) );
+	  (win;is_there_move;(mode(vs_computer),moveComputer;true)) );
 
 
 
@@ -938,7 +938,7 @@ getNewPos(1):-
 	  retractall(piecepic(_,A,Poss,_)),
 	   retractall(marked(_,_)),
 	  assert(marked(_,0)),
-	  (win;is_there_move;(mode(vs_computer),moveComputer;moveU2)));
+	  (win;is_there_move;(mode(vs_computer),moveComputer;true)));
 
 	(send(Top,fill_pattern,colour(Color)),
 	retractall(marked(_,_)),
@@ -1022,7 +1022,7 @@ getNewPos(2):-
 	  retractall(marked(_,_)),
 	  assert(marked(_,0)),
 
-	(win;is_there_move;(mode(vs_computer),moveComputer;moveU2)));
+	(win;is_there_move;(mode(vs_computer),moveComputer;true)));
 
 
 
@@ -1120,59 +1120,39 @@ getNewPos2(1):-
 
 	 (%when new pos isn't getting them out, move normally
 	 Pos1<25,  possible(Top,A,Pos1,Pos,Main,Second,Dice,1));
-	 (%when new pos is 25, that means getting them out from the column is correct
-	 Pos1=25,
-	  pieces(Main,A,_,Top),
-	  NewA is A-1,
-	  dice1(Dice1,_),
-
-	  ((double(true,T),
-	  retractall(double(_,_)),
-	  assert(double(false,T)));
-
-	 (double(false,_),
-	  free(Dice1),
-	  retractall(dice1(_,_)))),
-
-
-	  isEmpty(NewA,Main,Color),
-	  free(Top),
-	  retractall(piecepic(_,A,Main,_)),
-	  retractall(marked(_,_)),
-	  assert(marked(_,0)),
-	  (win;is_there_move;moveU) );
-
-
-
-	  (%when new pos is below 0, that means getting them out when you don't have higher columns of pieces
-	   Pos1>25,
-
-	 ((pieces(Poss,A,_,Top),
-	  findall(F, (pieces(F,_,Color,_),(F<Poss,F<18)), L1),
-	   length(L1,Length),
-	   Length is 0,
-	   NewA is A-1,
-	  dice1(Dice1,_),
-
-	  ((double(true,T),
-	  retractall(double(_,_)),
-	  assert(double(false,T)));
-
-	 (double(false,_),
-	  free(Dice1),
-	  retractall(dice1(_,_)))),
-
-
-	  isEmpty(NewA,Poss,Color),
-	  free(Top),
-	  retractall(piecepic(_,A,Poss,_)),
-	   retractall(marked(_,_)),
-	  assert(marked(_,0)),
-	  (win;is_there_move;moveU));
-
-	(send(Top,fill_pattern,colour(Color)),
-	retractall(marked(_,_)),
-	assert(marked(_,0))))))).
+	 (
+                %when new pos is 25, that means getting them out from the column is correct
+                Pos1=25,
+                pieces(Pos,A,EColor,Top), % <-- Corrected line: use Pos for the piece's current position
+                NewA is A-1,
+                dice1(Dice1,_),
+                ((double(true,T), retractall(double(_,_)), assert(double(false,T))); (double(false,_), free(Dice1), retractall(dice1(_,_)))),
+                isEmpty(NewA,Pos,EColor), % <-- Also change Main to Pos here for consistency
+                free(Top),
+                retractall(piecepic(_,A,Pos,_)), % <-- Also change Main to Pos here for consistency
+                retractall(marked(_,_)),
+                assert(marked(_,0)),
+                (win;is_there_move;(mode(vs_computer),moveComputer;true))
+            );
+            (
+                %when new pos is above 25, that means getting them out when you don't have higher columns of pieces
+                Pos1>25,
+                ((pieces(Pos,A,EColor,Top), % <-- Corrected line: use Pos for the piece's current position
+                findall(F, (pieces(F,_,EColor,_),(F<Pos,F>18)), L1), % <-- Also change Poss to Pos here
+                length(L1,Length), Length is 0,
+                NewA is A-1,
+                dice1(Dice1,_),
+                ((double(true,T), retractall(double(_,_)), assert(double(false,T))); (double(false,_), free(Dice1), retractall(dice1(_,_)))),
+                isEmpty(NewA,Pos,EColor), % <-- Also change Poss to Pos here
+                free(Top),
+                retractall(piecepic(_,A,Pos,_)), % <-- Also change Poss to Pos here
+                retractall(marked(_,_)),
+                assert(marked(_,0)),
+                (win;is_there_move;(mode(vs_computer),moveComputer;true)));
+                (send(Top,fill_pattern,colour(EColor)), retractall(marked(_,_)), assert(marked(_,0))))
+            )
+	
+	)).
 
 %getting new pos for dice 2
 getNewPos2(2):-
@@ -1232,59 +1212,37 @@ getNewPos2(2):-
 	 (Pos1<25,
 	 possible(Top,A,Pos1,Pos,Main,Second,Dice,2));
 
-	 (Pos1=25,
-	  pieces(Main,A,_,Top),
-	  dice2(Dice2,_),
-
-	  ((double(T,true),
-	  retractall(double(_,_)),
-	  assert(double(T,false)));
-
-	 (double(_,false),
-	  free(Dice2),
-	  retractall(dice2(_,_)))),
-
-
-	  NewA is A-1,
-	  isEmpty(NewA,Main,Color),
-	  free(Top),
-	  retractall(piecepic(_,A,Main,_)),
-	  retractall(marked(_,_)),
-	  assert(marked(_,0)),
-
-	(win;is_there_move;moveU));
-
-
-
-
-	  (Pos1>25,
-
-	 ((pieces(Poss,A,_,Top),
-	  findall(F, (pieces(F,_,Color,_),F<Poss,F<18), L1),
-	   length(L1,Length),
-	   Length is 0,
-	   dice2(Dice2,_),
-
-	   ((double(T,true),
-	  retractall(double(_,_)),
-	  assert(double(T,false)));
-
-	 (double(_,false),
-	  free(Dice2),
-	  retractall(dice2(_,_)))),
-
-
-	   free(Top),
-	  NewA is A-1,
-	  isEmpty(NewA,Poss,Color),
-	  retractall(piecepic(_,A,Pos1,_)),
-	   retractall(marked(_,_)),
-	  assert(marked(_,0)),
-	  (win;moveU));
-
-	(send(Top,fill_pattern,colour(Color)),
-	retractall(marked(_,_)),
-	assert(marked(_,0))))))).
+	(
+                %when new pos is 25, that means getting them out from the column is correct
+                Pos1=25,
+                pieces(Pos,A,_,Top), % <-- Corrected line: use Pos for the piece's current position
+                NewA is A-1,
+                dice2(Dice2,_),
+                ((double(true,T), retractall(double(_,_)), assert(double(false,T))); (double(false,_), free(Dice2), retractall(dice2(_,_)))),
+                isEmpty(NewA,Pos,EColor), % <-- Also change Main to Pos here for consistency
+                free(Top),
+                retractall(piecepic(_,A,Pos,_)), % <-- Also change Main to Pos here for consistency
+                retractall(marked(_,_)),
+                assert(marked(_,0)),
+                (win;is_there_move;(mode(vs_computer),moveComputer;true))
+            );
+            (
+                %when new pos is above 25, that means getting them out when you don't have higher columns of pieces
+                Pos1>25,
+                ((pieces(Pos,A,EColor,Top), % <-- Corrected line: use Pos for the piece's current position
+                findall(F, (pieces(F,_,EColor,_),(F<Pos,F>18)), L1), % <-- Also change Poss to Pos here
+                length(L1,Length), Length is 0,
+                NewA is A-1,
+                dice2(Dice2,_),
+                ((double(true,T), retractall(double(_,_)), assert(double(false,T))); (double(false,_), free(Dice2), retractall(dice2(_,_)))),
+                isEmpty(NewA,Pos,EColor), % <-- Also change Poss to Pos here
+                free(Top),
+                retractall(piecepic(_,A,Pos,_)), % <-- Also change Poss to Pos here
+                retractall(marked(_,_)),
+                assert(marked(_,0)),
+                (win;is_there_move;(mode(vs_computer),moveComputer;true)));
+                (send(Top,fill_pattern,colour(EColor)), retractall(marked(_,_)), assert(marked(_,0))))
+            ))).
 
 getNewPos2(_).
 
@@ -1786,7 +1744,7 @@ no_move_us2([H|L],Cube):-
 	X>1);
 
 	(Pos1>25,
-	 findall(F, (pieces(F,_,EColor,_),F>H,H<18), L1),
+	 findall(F, (pieces(F,_,EColor,_),H>F,H>18), L1),
 	   length(L1,Length),
 	   Length\=0)),
 	no_move_us2(L,Cube).
