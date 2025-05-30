@@ -942,7 +942,9 @@ getNewPos(1):-
 
 	(send(Top,fill_pattern,colour(Color)),
 	retractall(marked(_,_)),
-	assert(marked(_,0))))))).
+	assert(marked(_,0)))),
+	(win;is_there_move;true)
+	))).
 
 %getting new pos for dice 2
 getNewPos(2):-
@@ -1054,7 +1056,8 @@ getNewPos(2):-
 
 	(send(Top,fill_pattern,colour(Color)),
 	retractall(marked(_,_)),
-	assert(marked(_,0))))))).
+	assert(marked(_,0)))),
+	(win;is_there_move;true)))).
 
 getNewPos(_).
 
@@ -1138,7 +1141,7 @@ getNewPos2(1):-
                 %when new pos is above 25, that means getting them out when you don't have higher columns of pieces
                 Pos1>25,
                 ((pieces(Pos,A,EColor,Top), % <-- Corrected line: use Pos for the piece's current position
-                findall(F, (pieces(F,_,EColor,_),(F<Pos,F>18)), L1), % <-- Also change Poss to Pos here
+                findall(F, (pieces(F,_,EColor,_), (F<Pos,F>18)), L1),
                 length(L1,Length), Length is 0,
                 NewA is A-1,
                 dice1(Dice1,_),
@@ -1149,7 +1152,7 @@ getNewPos2(1):-
                 retractall(marked(_,_)),
                 assert(marked(_,0)),
                 (win;is_there_move;(mode(vs_computer),moveComputer;true)));
-                (send(Top,fill_pattern,colour(EColor)), retractall(marked(_,_)), assert(marked(_,0))))
+                (send(Top,fill_pattern,colour(Color)), retractall(marked(_,_)), assert(marked(_,0))))
             )
 	
 	)).
@@ -1215,10 +1218,10 @@ getNewPos2(2):-
 	(
                 %when new pos is 25, that means getting them out from the column is correct
                 Pos1=25,
-                pieces(Pos,A,_,Top), % <-- Corrected line: use Pos for the piece's current position
+                pieces(Pos,A,EColor,Top), % <-- Corrected line: use Pos for the piece's current position
                 NewA is A-1,
                 dice2(Dice2,_),
-                ((double(true,T), retractall(double(_,_)), assert(double(false,T))); (double(false,_), free(Dice2), retractall(dice2(_,_)))),
+                ((double(T,true), retractall(double(_,_)), assert(double(T,false))); (double(_,false), free(Dice2), retractall(dice2(_,_)))),
                 isEmpty(NewA,Pos,EColor), % <-- Also change Main to Pos here for consistency
                 free(Top),
                 retractall(piecepic(_,A,Pos,_)), % <-- Also change Main to Pos here for consistency
@@ -1230,18 +1233,18 @@ getNewPos2(2):-
                 %when new pos is above 25, that means getting them out when you don't have higher columns of pieces
                 Pos1>25,
                 ((pieces(Pos,A,EColor,Top), % <-- Corrected line: use Pos for the piece's current position
-                findall(F, (pieces(F,_,EColor,_),(F<Pos,F>18)), L1), % <-- Also change Poss to Pos here
+				findall(F, (pieces(F,_,EColor,_), (F<Pos,F>18)), L1),
                 length(L1,Length), Length is 0,
                 NewA is A-1,
                 dice2(Dice2,_),
-                ((double(true,T), retractall(double(_,_)), assert(double(false,T))); (double(false,_), free(Dice2), retractall(dice2(_,_)))),
+                ((double(T,true), retractall(double(_,_)), assert(double(T,false))); (double(_,false), free(Dice2), retractall(dice2(_,_)))),
                 isEmpty(NewA,Pos,EColor), % <-- Also change Poss to Pos here
                 free(Top),
                 retractall(piecepic(_,A,Pos,_)), % <-- Also change Poss to Pos here
                 retractall(marked(_,_)),
                 assert(marked(_,0)),
                 (win;is_there_move;(mode(vs_computer),moveComputer;true)));
-                (send(Top,fill_pattern,colour(EColor)), retractall(marked(_,_)), assert(marked(_,0))))
+                (send(Top,fill_pattern,colour(Color)), retractall(marked(_,_)), assert(marked(_,0))))
             ))).
 
 getNewPos2(_).
@@ -1249,8 +1252,7 @@ getNewPos2(_).
 %win msg for player
 win:-
 	colors(Color,EColor),
-	not(pieces(_,_,Color,_)),
-	(turn(player), new(Win,text('Player wins!'));new(Win,text('Player 2 wins!'))),
+	(turn(player), not(pieces(_,_,Color,_)), new(Win,text('Player wins!')); not(pieces(_,_,EColor,_)), new(Win,text('Player 2 wins!'))),
 	send(Win,colour(Color)),
 	send(Win, font, font(times, bold, 36)),
        send(@window,display,Win,point(100,330)),
@@ -1714,6 +1716,8 @@ is_there_move :-
     (double(_,_), not(dice1(_, _)), not(dice2(_, _))),
     assert(dice1(stub,_)),
     assert(dice2(stub,_)),
+	retractall(double(_,_)),
+	assert(double(false,false)),
 	writeln('...end8'),
     (turn(player), moveU2 ; moveU).
 
