@@ -498,7 +498,7 @@ moveU:-
        %incase of no movement
         findall(Pos, pieces(Pos,_,Color,_), L),
 
-       (((marked(_,0), not(isnt_at_home1(Color)),no_move_u(L,Cube1), no_move_u(L,Cube2), nomove, (mode(vs_computer),changing_turn_to_computer;moveU2));
+       (((marked(_,0), not(isnt_at_home1(Color)),no_move_u(L,Cube1), no_move_u(L,Cube2), nomove, (mode(vs_computer),changing_turn_to_computer; retractall(dice1(_,_)), retractall(double(_,_)), assert(double(false,false)), assert(dice1(stub,_)), retractall(dice2(_,_)), assert(dice2(stub,_)), moveU2));
         (isnt_at_home1(Color),is_there_move));true).
 
 
@@ -547,7 +547,7 @@ moveU2:-
        %incase of no movement
         findall(Pos, pieces(Pos,_,Color,_), L),
 
-       (((marked(_,0), not(isnt_at_home2(Color)),no_move_u2(L,Cube1), no_move_u2(L,Cube2), nomove, moveU);
+       (((marked(_,0), not(isnt_at_home2(Color)),no_move_u2(L,Cube1), no_move_u2(L,Cube2), nomove, retractall(dice1(_,_)), retractall(double(_,_)), assert(double(false,false)), assert(dice1(stub,_)), retractall(dice2(_,_)), assert(dice2(stub,_)), moveU);
         (isnt_at_home2(Color),is_there_move));true).
 
 
@@ -666,8 +666,8 @@ mark(Top):-
 
 mark(Top):-
 	check4(false),
-	not(pieces(25,_,_,_)), %no captive pieces
 	turn(player),
+	not(pieces(25,_,_,_)), %no captive pieces
 	marked(_,0),
 	retractall(marked(_,_)),
 	colors(Color,_),
@@ -708,11 +708,11 @@ mark(Top):-
 	colors(Color,_), %Color is player's color
 	send(Top,fill_pattern,colour(Color)),
 	%if you got any dice, remove them
-	((dice1(Dice1,_), mode(vs_computer), free(Dice1), retractall(dice1(_,_)));true),
-	((dice2(Dice2,_), mode(vs_computer), free(Dice2), retractall(dice2(_,_)));true),
+	((dice1(Dice1,_), free(Dice1), retractall(dice1(_,_)));true),
+	((dice2(Dice2,_), free(Dice2), retractall(dice2(_,_)));true),
 	retractall(double(_,_)),
 	assert(double(false,false)),
-    (mode(vs_computer),moveComputer;moveU2).
+    (mode(vs_computer),moveComputer;retractall(dice1(_,_)), assert(dice1(stub,_)), retractall(dice2(_,_)), assert(dice2(stub,_)), moveU2).
 
 %cant click on other circles that are captive
 mark(Top):-
@@ -811,10 +811,11 @@ mark2(Top):-
 	colors(_,EColor), %Color is player's color
 	send(Top,fill_pattern,colour(EColor)),
 	%if you got any dice, remove them
-	((dice1(Dice1,_), mode(vs_computer), free(Dice1), retractall(dice1(_,_)));true),
-	((dice2(Dice2,_), mode(vs_computer), free(Dice2), retractall(dice2(_,_)));true),
+	((dice1(Dice1,_), free(Dice1), retractall(dice1(_,_)));true),
+	((dice2(Dice2,_), free(Dice2), retractall(dice2(_,_)));true),
 	retractall(double(_,_)),
 	assert(double(false,false)),
+	(mode(vs_player), retractall(dice1(_,_)), assert(dice1(stub,_)), retractall(dice2(_,_)), assert(dice2(stub,_));true),
     moveU.
 
 %cant click on other circles that are captive
@@ -828,8 +829,6 @@ mark2(Top):-
 
 mark2(_).
 
-%getNewPos(Dice)
-%getting new pos for dice 1
 getNewPos(1):-
 	dice1(Dice,Main),
 	(dice2(_,Second);true),
@@ -1052,7 +1051,7 @@ getNewPos(2):-
 	  retractall(piecepic(_,A,Pos1,_)),
 	   retractall(marked(_,_)),
 	  assert(marked(_,0)),
-	  (win;(mode(vs_computer),moveComputer;moveU2)));
+	  (win;(mode(vs_computer),moveComputer;true)));
 
 	(send(Top,fill_pattern,colour(Color)),
 	retractall(marked(_,_)),
